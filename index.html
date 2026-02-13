@@ -417,9 +417,60 @@
         #custom-alert.show, #custom-confirm.show { opacity: 1; }
         #custom-alert.show .alert-box, #custom-confirm.show .alert-box { transform: scale(1); }
         .alert-icon { font-size: 3rem; margin-bottom: 10px; }
+        /* --- SPLASH SCREEN STYLES --- */
+#splash-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, #58cc02, #1cb0f6);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.splash-img {
+    width: 150px; /* Ajusta según tu imagen */
+    height: auto;
+    margin-bottom: 20px;
+    animation: float 3s ease-in-out infinite;
+}
+
+.loader-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-top: 30px;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+
+/* Clase para ocultar el splash */
+.hide-splash {
+    opacity: 0;
+    visibility: hidden;
+}
+
     </style>
 </head>
 <body>
+<div id="splash-screen">
+    <img src="https://raw.githubusercontent.com/LJonatan78/CheckWin.html/main/1770870844485-ezgif.com-resize.jpg" 
+         alt="CheckWin Portada" 
+         class="splash-img"
+         style="border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    
+    <div class="app-logo" style="font-size: 3rem; margin-top: 20px; color: white; text-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+        Check<span style="color: #ffc800;">Win</span>
+    </div>
+    
+    <div class="loader-spinner" style="border-top-color: white; border-left-color: rgba(255,255,255,0.3); border-bottom-color: rgba(255,255,255,0.3); border-right-color: rgba(255,255,255,0.3);"></div>
+</div>
 
     <header>
         <div class="status-group">
@@ -1402,12 +1453,33 @@
             });
         }
 
-        function startTimer() {
-            clearInterval(timerInterval); updateTimerUI();
+                function startTimer() {
+            clearInterval(timerInterval); 
+            updateTimerUI();
+            
             timerInterval = setInterval(() => {
                 if(!gameActive) { clearInterval(timerInterval); return; }
-                if(game.turn() === 'w') { whiteTime--; if(whiteTime <= 0) endGame('lose_time'); } 
-                else { blackTime--; if(blackTime <= 0) endGame('win_time'); }
+                
+                // Si es turno de las BLANCAS
+                if(game.turn() === 'w') { 
+                    whiteTime--; 
+                    if(whiteTime <= 0) {
+                        // Se acabó el tiempo blanco. 
+                        // Si yo soy blanco -> PERDÍ. Si yo soy negro -> GANÉ.
+                        if (playerColor === 'w') endGame('lose_time');
+                        else endGame('win_time');
+                    }
+                } 
+                // Si es turno de las NEGRAS
+                else { 
+                    blackTime--; 
+                    if(blackTime <= 0) { 
+                        // Se acabó el tiempo negro.
+                        // Si yo soy negro -> PERDÍ. Si yo soy blanco -> GANÉ.
+                        if (playerColor === 'b') endGame('lose_time');
+                        else endGame('win_time');
+                    }
+                }
                 updateTimerUI();
             }, 1000);
         }
@@ -2022,5 +2094,18 @@
             }
         };
     </script>
+    <script>
+    // Simular carga y ocultar Splash Screen
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            splash.classList.add('hide-splash');
+            
+            // Opcional: Eliminar del DOM después de la animación para ahorrar memoria
+            setTimeout(() => { splash.style.display = 'none'; }, 500);
+        }, 2500); // 2.5 segundos de espera
+    });
+</script>
+
 </body>
-</html>
+                              </html>
