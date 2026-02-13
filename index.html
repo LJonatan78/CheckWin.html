@@ -455,6 +455,132 @@
     opacity: 0;
     visibility: hidden;
 }
+/* --- COVERFLOW 3D STYLE --- */
+#products-list {
+    position: relative;
+    width: 100%;
+    height: 420px; /* Altura del escenario */
+    perspective: 1000px; /* Profundidad 3D */
+    overflow: hidden;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.coverflow-card {
+    position: absolute;
+    width: 260px;
+    height: 360px;
+    background: white;
+    border-radius: 20px;
+    border: 4px solid white; /* Borde blanco estilo carta */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s, z-index 0s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    text-align: center;
+    backface-visibility: hidden; /* Oculta la parte trasera para rendimiento */
+}
+
+/* Estilos internos de la tarjeta */
+.cf-header {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    color: var(--dark);
+    line-height: 1.2;
+}
+
+.cf-icon {
+    font-size: 4rem;
+    margin: 10px 0;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1));
+}
+
+.cf-desc {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.cf-price-box {
+    background: #f0f0f0;
+    padding: 10px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.cf-real-price {
+    text-decoration: line-through;
+    color: var(--danger);
+    font-size: 0.9rem;
+    display: block;
+}
+
+.cf-game-price {
+    color: var(--gold);
+    font-weight: 900;
+    font-size: 1.4rem;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
+/* Colores según proveedor */
+.claro-card { border-color: var(--claro); }
+.claro-card .cf-icon { color: var(--claro); }
+.tigo-card { border-color: var(--tigo); }
+.tigo-card .cf-icon { color: var(--tigo); }
+
+/* --- ESTADOS 3D --- */
+
+/* Tarjeta Central (Activa) */
+.cf-center {
+    transform: translateX(0) translateZ(0) rotateY(0deg);
+    z-index: 100;
+    opacity: 1;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+}
+
+/* Tarjetas a la Izquierda */
+.cf-left {
+    transform: translateX(-180px) translateZ(-200px) rotateY(60deg);
+    z-index: 50;
+    opacity: 0.6;
+    filter: brightness(0.8);
+    pointer-events: none; /* No se puede clickear si no está en el centro */
+}
+.cf-left-far {
+    transform: translateX(-300px) translateZ(-400px) rotateY(70deg);
+    z-index: 10;
+    opacity: 0;
+}
+
+/* Tarjetas a la Derecha */
+.cf-right {
+    transform: translateX(180px) translateZ(-200px) rotateY(-60deg);
+    z-index: 50;
+    opacity: 0.6;
+    filter: brightness(0.8);
+    pointer-events: none;
+}
+.cf-right-far {
+    transform: translateX(300px) translateZ(-400px) rotateY(-70deg);
+    z-index: 10;
+    opacity: 0;
+}
+/* --- Agrega esto a tu CSS existente --- */
+
+#products-list {
+    /* Asegúrate de que esta línea esté en las reglas de #products-list */
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Nueva clase para el estado de "desvanecido" */
+#products-list.fade-out {
+    opacity: 0;
+}
 
     </style>
 </head>
@@ -1829,53 +1955,165 @@
             }); 
         }
         
-        function loadStore() { 
-            renderCategories(); 
-            const list = document.getElementById('products-list'); 
-            list.innerHTML = ''; 
-            
-            const allProducts = activeProvider === 'claro' ? CLARO_PRODUCTS : TIGO_PRODUCTS; 
-            
-            let filtered = [];
-            if (activeCategory === 'recommended') {
-                filtered = allProducts.filter(p => p.recommended === true);
-            } else if (activeCategory === 'all') {
-                filtered = allProducts;
-            } else {
-                filtered = allProducts.filter(p => p.category === activeCategory);
-            }
+/* --- VARIABLES GLOBALES PARA LA TIENDA 3D --- */
+let storeIndex = 0;
+let storeItemsData = []; // Guardará los datos filtrados actuales
+let touchStartX = 0;
+let touchEndX = 0;
 
-            if (filtered.length === 0) { 
-                list.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">No hay paquetes disponibles.</p>'; 
-                return; 
-            } 
-            
-            filtered.forEach(p => { 
-                const item = document.createElement('div'); 
-                item.className = `product-item ${activeProvider === 'claro' ? 'claro-style' : 'tigo-style'}`; 
-                
-                let badgeHtml = "";
-                if(p.recommended) {
-                    badgeHtml = `<div class="recommended-badge"><i class="fas fa-fire"></i> POPULAR</div>`;
-                }
+/* --- NUEVA FUNCIÓN LOAD STORE (COVERFLOW) --- */
+/* --- FUNCIÓN LOAD STORE CON TRANSICIÓN --- */
+function loadStore() {
+    const list = document.getElementById('products-list');
+    
+    // 1. Iniciar el desvanecimiento (fade-out)
+    list.classList.add('fade-out');
 
-                item.innerHTML = `
-                    <div class="product-details">
-                        ${badgeHtml}
-                        <h4>${p.name}</h4>
-                        <small>${p.desc}</small>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="product-price">
-                            <span class="price-real-tachado">Q${p.realPrice}.00</span>
-                            <span class="price-game-monedas">${p.gameCost} <i class="fas fa-coins"></i></span>
-                        </div>
-                        <button class="buy-btn" onclick="redeem('${p.name}', ${p.gameCost}, ${p.realPrice})" ${UserState.coins < p.gameCost ? 'disabled' : ''}>CANJEAR</button>
-                    </div>`; 
-                list.appendChild(item); 
-            }); 
-        }
+    // 2. Esperar a que termine la transición (300ms) antes de cambiar el contenido
+    setTimeout(() => {
+        renderCategories(); 
+        list.innerHTML = ''; 
         
+        // Configurar gestos táctiles
+        list.removeEventListener('touchstart', handleTouchStart);
+        list.removeEventListener('touchend', handleTouchEnd);
+        list.addEventListener('touchstart', handleTouchStart, {passive: false});
+        list.addEventListener('touchend', handleTouchEnd, {passive: false});
+
+        // Filtrar datos
+        const allProducts = activeProvider === 'claro' ? CLARO_PRODUCTS : TIGO_PRODUCTS; 
+        
+        if (activeCategory === 'recommended') {
+            storeItemsData = allProducts.filter(p => p.recommended === true);
+        } else if (activeCategory === 'all') {
+            storeItemsData = allProducts;
+        } else {
+            storeItemsData = allProducts.filter(p => p.category === activeCategory);
+        }
+
+        if (storeItemsData.length === 0) { 
+            list.innerHTML = '<p style="text-align: center; color: #777; margin-top: 30px;">No hay paquetes disponibles.</p>';
+            // Importante: remover fade-out para mostrar el mensaje
+            list.classList.remove('fade-out');
+            return; 
+        }
+
+        // Resetear índice
+        storeIndex = Math.floor(storeItemsData.length / 2);
+        if(storeIndex < 0) storeIndex = 0;
+
+        // Generar tarjetas
+        storeItemsData.forEach((p, index) => {
+            const card = document.createElement('div');
+            const styleClass = activeProvider === 'claro' ? 'claro-card' : 'tigo-card';
+            let icon = "fa-mobile-alt";
+            if(p.category.includes('internet')) icon = "fa-wifi";
+            if(p.category.includes('recarga')) icon = "fa-wallet";
+            if(p.category.includes('roaming')) icon = "fa-globe-americas";
+            
+            card.className = `coverflow-card ${styleClass}`;
+            card.id = `card-${index}`;
+            card.onclick = () => {
+                if (index !== storeIndex) {
+                    storeIndex = index;
+                    SoundEngine.move();
+                    updateCoverflow();
+                }
+            };
+
+            card.innerHTML = `
+                <div>
+                    <div class="cf-header">${p.name}</div>
+                    <small style="color:#999; text-transform:uppercase; font-size:0.7rem; letter-spacing:1px;">${activeProvider}</small>
+                </div>
+                <i class="fas ${icon} cf-icon"></i>
+                <div class="cf-desc">${p.desc}</div>
+                <div class="cf-price-box">
+                    <span class="cf-real-price">Q${p.realPrice}.00</span>
+                    <div class="cf-game-price">${p.gameCost} <i class="fas fa-coins" style="font-size:1rem;"></i></div>
+                </div>
+                <button class="buy-btn" style="width:100%; margin-top:0;" 
+                    onclick="event.stopPropagation(); redeem('${p.name}', ${p.gameCost}, ${p.realPrice})" 
+                    ${UserState.coins < p.gameCost ? 'disabled' : ''}>
+                    CANJEAR
+                </button>
+            `;
+            list.appendChild(card);
+        });
+
+        // Agregar indicador
+        const hint = document.createElement('div');
+        hint.innerHTML = '<i class="fas fa-hand-pointer fa-bounce"></i> Desliza para ver más';
+        hint.style.cssText = "position:absolute; bottom:10px; width:100%; text-align:center; color:#aaa; font-size:0.8rem; pointer-events:none;";
+        list.appendChild(hint);
+
+        updateCoverflow();
+
+        // 3. Iniciar la aparición (fade-in)
+        list.classList.remove('fade-out');
+
+    }, 300); // Este tiempo debe coincidir con el de tu CSS (0.3s = 300ms)
+}
+
+
+/* --- LÓGICA DE ACTUALIZACIÓN VISUAL --- */
+function updateCoverflow() {
+    storeItemsData.forEach((_, i) => {
+        const el = document.getElementById(`card-${i}`);
+        if(!el) return;
+
+        // Limpiar clases de estado
+        el.classList.remove('cf-center', 'cf-left', 'cf-right', 'cf-left-far', 'cf-right-far');
+
+        const diff = i - storeIndex;
+
+        if (diff === 0) {
+            el.classList.add('cf-center'); // Tarjeta central
+        } else if (diff === -1) {
+            el.classList.add('cf-left'); // Inmediata izquierda
+        } else if (diff === 1) {
+            el.classList.add('cf-right'); // Inmediata derecha
+        } else if (diff < -1) {
+            el.classList.add('cf-left-far'); // Lejos izquierda (invisible u opaco)
+        } else {
+            el.classList.add('cf-right-far'); // Lejos derecha
+        }
+    });
+}
+
+/* --- CONTROL GESTUAL (SWIPE) --- */
+function handleTouchStart(e) {
+    touchStartX = e.changedTouches[0].screenX;
+}
+
+function handleTouchEnd(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipeGesture();
+}
+
+function handleSwipeGesture() {
+    const threshold = 50; // Mínima distancia para considerar swipe
+    const swipeDistance = touchEndX - touchStartX;
+    
+    if (Math.abs(swipeDistance) > threshold) {
+        if (swipeDistance > 0) {
+            // Deslizó a la derecha -> Ir al ANTERIOR
+            if (storeIndex > 0) {
+                storeIndex--;
+                SoundEngine.move(); // Sonido suave al pasar carta
+                updateCoverflow();
+            }
+        } else {
+            // Deslizó a la izquierda -> Ir al SIGUIENTE
+            if (storeIndex < storeItemsData.length - 1) {
+                storeIndex++;
+                SoundEngine.move();
+                updateCoverflow();
+            }
+        }
+    }
+}
+
         let confirmCallback = null;
         function showConfirm(title, msg, callback) {
             document.getElementById('confirm-title').innerText = title;
@@ -2213,4 +2451,4 @@
     });
 </script>
 </body>
-</html>
+    </html>
