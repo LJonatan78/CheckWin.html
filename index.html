@@ -829,10 +829,11 @@
                 });
                 this.startAmbient();
             },
+            // Zumbido grave para tiempo agotado (Sawtooth baja frecuencia)
             timeout: function() {
                 if (!this.ctx) this.init();
-                [800, 0, 800, 0, 800].forEach((f, i) => {
-                    if(f>0) setTimeout(() => this.playTone(f, 'square', 0.1, 0.2), i * 100);
+                [150, 100, 80].forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'sawtooth', 0.4, 0.3), i * 200);
                 });
                 this.startAmbient();
             },
@@ -869,31 +870,52 @@
         };
 
         /* --- 1. FIREBASE INIT --- */
+        /* --- 1. FIREBASE INIT --- */
         const firebaseConfig = {
-          apiKey: "AIzaSyBaxaKLyfnynkkRTJ_JVs0bE3p2Yk5GJLQ",
-          authDomain: "mentepro-40a20.firebaseapp.com",
-          projectId: "mentepro-40a20",
-          storageBucket: "mentepro-40a20.firebasestorage.app",
-          messagingSenderId: "1031518059538",
-          appId: "1:1031518059538:web:9005a103ac60b91c442ccb",
-          measurementId: "G-XSK5HE8JNY"
+          apiKey: "AIzaSyBTrrF7jiaXfrWmDsFz667X2GiT_wU-Gto",
+          authDomain: "checkwin-f87e1.firebaseapp.com",
+          databaseURL: "https://checkwin-f87e1-default-rtdb.firebaseio.com",
+          projectId: "checkwin-f87e1",
+          storageBucket: "checkwin-f87e1.firebasestorage.app",
+          messagingSenderId: "99608352111",
+          appId: "1:99608352111:web:0e9ad4b2130b44c903449a",
+          measurementId: "G-7F67F42098"
         };
-        firebase.initializeApp(firebaseConfig);
+        
+        // Inicializar Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        } else {
+            firebase.app(); // Si ya existe, usa la instancia actual
+        }
+
         const auth = firebase.auth();
         const db = firebase.database();
         let userId = null;
         let userShortId = null;
 
-        auth.signInAnonymously().catch((error) => console.error("Error Auth:", error));
+        // Iniciar sesión anónima (Esto funcionará porque ya lo activaste en la consola)
+        auth.signInAnonymously().catch((error) => {
+            console.error("Error Auth:", error);
+            customAlert("Error de Conexión", "No se pudo conectar con el servidor.");
+        });
+
         auth.onAuthStateChanged((user) => { 
             if (user) { 
                 userId = user.uid; 
+                // Creamos un ID corto para referidos (primeros 8 caracteres)
                 userShortId = userId.substring(0, 8).toUpperCase();
                 
-                document.getElementById('user-id-display').innerText = userShortId; 
-                document.getElementById('header-ref-id').innerText = userShortId;
-                document.getElementById('my-ref-id').innerText = userShortId;
+                // Actualizamos la interfaz con el ID
+                const idDisplay = document.getElementById('user-id-display');
+                const headerRef = document.getElementById('header-ref-id');
+                const myRef = document.getElementById('my-ref-id');
 
+                if(idDisplay) idDisplay.innerText = userShortId; 
+                if(headerRef) headerRef.innerText = userShortId;
+                if(myRef) myRef.innerText = userShortId;
+
+                // Iniciamos la escucha de datos
                 initFirebaseData(); 
             } 
         });
@@ -1263,63 +1285,105 @@
                     const to = match[2];
                     const promotion = match[3];
 
-                    const move = game.move({ from: from, to: to, promotion: promotion || 'q' });
-                    board.position(game.fen());
+                    // --- CÁLCULO DEL "FACTOR HUMANO" (DELAY) ---
+                    let delay = 0;
                     
-                    if (move && move.captured) SoundEngine.capture();
-                    else SoundEngine.move(); 
+                    // Tiempo restante de la IA
+                    const aiTimeLeft = (playerColor === 'w' ? blackTime : whiteTime);
 
-                    checkWinCondition();
-                    updateGameStatus();
-
-                    if (premoves.length > 0 && gameActive) {
-                        const nextPremove = premoves.shift(); 
-                        const pm = game.move({ from: nextPremove.from, to: nextPremove.to, promotion: 'q' });
-                        if (pm !== null) {
-                            board.position(game.fen());
-                            if (pm.captured) SoundEngine.capture();
-                            else SoundEngine.move(); 
-                            removeHighlights(); renderPremoves(); updateGameStatus(); checkWinCondition();
-                            if (!checkWinCondition()) triggerAI();
-                        } else {
-                            premoves = []; removeHighlights(); renderPremoves();
-                            customAlert("Premove Cancelado", "El movimiento ya no es válido.", "error");
-                        }
+                    // Si le queda poco tiempo (< 20 seg), mueve RÁPIDO (pánico)
+                    if (aiTimeLeft < 20) {
+                        delay = 100; // 0.1 segundos (Casi instantáneo)
+                    } 
+                    // Si es una partida Blitz (1 minuto)
+                    else if (setup.time === 1) {
+                        delay = Math.floor(Math.random() * 1000) + 500; // Entre 0.5 y 1.5 seg
+                    } 
+                    // Si es partida Normal (5, 10, 30 min)
+                    else {
+                        delay = Math.floor(Math.random() * 2000) + 1000; // Entre 1 y 3 seg
                     }
+
+                    // Ejecutar el movimiento después del "pensamiento simulado"
+                    setTimeout(() => {
+                        // Verificar que el juego siga activo antes de mover
+                        if (!gameActive) return;
+
+                        const move = game.move({ from: from, to: to, promotion: promotion || 'q' });
+                        board.position(game.fen());
+                        
+                        if (move && move.captured) SoundEngine.capture();
+                        else SoundEngine.move(); 
+
+                        checkWinCondition();
+                        updateGameStatus();
+
+                        // Manejo de Premoves (Tus movimientos adelantados)
+                        if (premoves.length > 0 && gameActive) {
+                            // Pequeña pausa para que se vea tu premove
+                            setTimeout(() => {
+                                const nextPremove = premoves.shift(); 
+                                const pm = game.move({ from: nextPremove.from, to: nextPremove.to, promotion: 'q' });
+                                if (pm !== null) {
+                                    board.position(game.fen());
+                                    if (pm.captured) SoundEngine.capture();
+                                    else SoundEngine.move(); 
+                                    removeHighlights(); 
+                                    renderPremoves(); 
+                                    updateGameStatus(); 
+                                    checkWinCondition();
+                                    if (!checkWinCondition()) triggerAI();
+                                } else {
+                                    premoves = []; 
+                                    removeHighlights(); 
+                                    renderPremoves();
+                                    customAlert("Premove Cancelado", "El movimiento ya no es válido.", "error");
+                                }
+                            }, 200);
+                        }
+                    }, delay);
                 }
             }
         };
 
+
         function triggerAI() {
+            // Cambiar indicador visual
             document.getElementById('player-dot').classList.remove('active'); 
             document.getElementById('ai-dot').classList.add('active'); 
-            document.getElementById('game-status-text').innerText = "IA Calculando..."; 
+            document.getElementById('game-status-text').innerText = "IA Pensando..."; 
             
             stockfish.postMessage('position fen ' + game.fen());
 
             const wTimeMs = whiteTime * 1000;
             const bTimeMs = blackTime * 1000;
-
             const myTimeRemaining = (playerColor === 'w' ? blackTime : whiteTime);
-            if (myTimeRemaining < 5) {
+
+            // Si le queda muy poco tiempo, forzar cálculo rápido
+            if (myTimeRemaining < 10) {
                 stockfish.postMessage('go movetime 100');
                 return;
             }
 
             if (setup.diff === 'easy') {
-                stockfish.postMessage('setoption name Skill Level value 10');
+                // Fácil: Piensa muy poco (el delay visual lo hace ver humano)
+                stockfish.postMessage('setoption name Skill Level value 5');
                 stockfish.postMessage('go depth 2'); 
             } else if (setup.diff === 'med') {
-                stockfish.postMessage('setoption name Skill Level value 20');
-                stockfish.postMessage('setoption name Contempt value 0'); 
-                stockfish.postMessage('go movetime 1500');
+                // Medio: Nivel decente
+                stockfish.postMessage('setoption name Skill Level value 10');
+                stockfish.postMessage('go depth 10');
             } else {
+                // Pro: Usa el tiempo real para calcular fuerte
                 stockfish.postMessage('setoption name Skill Level value 20');
                 stockfish.postMessage('setoption name Contempt value 20'); 
-                let thinkingTime = (setup.time === 1) ? 600 : ((setup.time === 5) ? 1500 : 3000);
-                stockfish.postMessage(`go wtime ${wTimeMs} btime ${bTimeMs} depth 22 movetime ${thinkingTime}`);
+                
+                // En partidas largas, deja que piense más
+                let searchTime = (setup.time === 1) ? 500 : 2000; 
+                stockfish.postMessage(`go movetime ${searchTime}`);
             }
         }
+
 
         /* --- FUNCIONES DE JUEGO --- */
         
@@ -1659,7 +1723,23 @@
         }
 
         /* --- NAVEGACIÓN Y UTILIDADES --- */
-        function showGameOverModal() { document.getElementById('game-over-modal').style.display = 'flex'; }
+        function showGameOverModal() { 
+            const modal = document.getElementById('game-over-modal');
+            const box = modal.querySelector('.modal-box'); // Seleccionamos la cajita blanca
+            
+            modal.style.display = 'flex'; 
+            
+            // --- PROTECCIÓN ANTI-CLIC ACCIDENTAL ---
+            // Desactiva los botones por 1.5 segundos para que veas el resultado
+            box.style.pointerEvents = 'none'; 
+            box.style.opacity = '0.9'; // Un poco transparente para indicar "espera"
+            
+            setTimeout(() => {
+                box.style.pointerEvents = 'auto'; // Reactiva los clics
+                box.style.opacity = '1'; 
+            }, 1500);
+        }
+
         
         function closeGameOverModal() { 
             SoundEngine.stopAmbient(); 
