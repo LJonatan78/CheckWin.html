@@ -460,11 +460,11 @@
 </head>
 <body>
 <div id="splash-screen">
-    <img src="https://raw.githubusercontent.com/LJonatan78/CheckWin.html/main/1770870844485-ezgif.com-resize.jpg" 
-         alt="CheckWin Portada" 
-         class="splash-img"
-         style="border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-    
+<img id="portada-img" 
+     src="https://raw.githubusercontent.com/LJonatan78/CheckWin.html/main/1770870844485-ezgif.com-resize.jpg" 
+     alt="CheckWin Portada" 
+     class="splash-img"
+     style="border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
     <div class="app-logo" style="font-size: 3rem; margin-top: 20px; color: white; text-shadow: 0 2px 5px rgba(0,0,0,0.2);">
         Check<span style="color: #ffc800;">Win</span>
     </div>
@@ -2094,18 +2094,43 @@
             }
         };
     </script>
-    <script>
-    // Simular carga y ocultar Splash Screen
+<script>
     window.addEventListener('load', () => {
-        setTimeout(() => {
-            const splash = document.getElementById('splash-screen');
-            splash.classList.add('hide-splash');
-            
-            // Opcional: Eliminar del DOM después de la animación para ahorrar memoria
-            setTimeout(() => { splash.style.display = 'none'; }, 500);
-        }, 2500); // 2.5 segundos de espera
+        const splash = document.getElementById('splash-screen');
+        const img = document.getElementById('portada-img'); // Busca la imagen por su ID
+        let isHidden = false; // Para evitar que se cierre dos veces
+
+        // Función para cerrar el Splash suavemente
+        const closeSplash = () => {
+            if (isHidden) return; // Si ya se cerró, no hagas nada
+            isHidden = true;
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 500);
+        };
+
+        // LÓGICA PRINCIPAL
+        if (img && img.complete) {
+            // A: Si la imagen ya estaba lista (caché), espera 2.5s y cierra
+            setTimeout(closeSplash, 2500);
+        } else if (img) {
+            // B: Si la imagen aún no carga, espera a que cargue
+            img.onload = () => {
+                // Una vez cargada, déjala 2 segundos para que se luzca y cierra
+                setTimeout(closeSplash, 2000);
+            };
+            // Si la imagen falla (error de GitHub), cierra inmediatamente
+            img.onerror = closeSplash;
+        } else {
+            // C: Si no encuentra la imagen, cierra a los 2s por seguridad
+            setTimeout(closeSplash, 2000);
+        }
+
+        // SEGURO DE VIDA: Si pasan 8 segundos y nada ha pasado (internet muy lento),
+        // cierra el splash a la fuerza para que el usuario pueda jugar.
+        setTimeout(closeSplash, 8000);
     });
 </script>
-
 </body>
-                              </html>
+</html>
