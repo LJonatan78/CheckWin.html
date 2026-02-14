@@ -549,7 +549,8 @@
     z-index: 50;
     opacity: 0.6;
     filter: brightness(0.8);
-    pointer-events: none; /* No se puede clickear si no está en el centro */
+    pointer-events: auto; /* <--- CAMBIO IMPORTANTE: Antes decía 'none' */
+    cursor: pointer;      /* Para que se vea que es cliqueable */
 }
 .cf-left-far {
     transform: translateX(-300px) translateZ(-400px) rotateY(70deg);
@@ -563,7 +564,8 @@
     z-index: 50;
     opacity: 0.6;
     filter: brightness(0.8);
-    pointer-events: none;
+    pointer-events: auto; /* <--- CAMBIO IMPORTANTE: Antes decía 'none' */
+    cursor: pointer;
 }
 .cf-right-far {
     transform: translateX(300px) translateZ(-400px) rotateY(-70deg);
@@ -666,11 +668,11 @@
             </div>
 
             <div style="margin-top: 25px; width: 100%; display: flex; gap: 10px;">
-                <div style="flex: 1; background: #fff; padding: 15px; border-radius: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03);" onclick="navTo('store-screen', document.querySelectorAll('.nav-item')[1]); loadStore();">
+                <div style="flex: 1; background: #fff; padding: 15px; border-radius: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03);" onclick="SoundEngine.click(); navTo('store-screen', document.querySelectorAll('.nav-item')[1]); loadStore();">
                     <i class="fas fa-gift" style="font-size: 1.5rem; color: var(--premove); margin-bottom: 5px;"></i>
                     <div style="font-size: 0.8rem; font-weight: bold;">Premios</div>
                 </div>
-                <div style="flex: 1; background: #fff; padding: 15px; border-radius: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03);" onclick="openReferralModal()">
+                <div style="flex: 1; background: #fff; padding: 15px; border-radius: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03);" onclick="SoundEngine.click(); openReferralModal()">
                     <i class="fas fa-users" style="font-size: 1.5rem; color: var(--process); margin-bottom: 5px;"></i>
                     <div style="font-size: 0.8rem; font-weight: bold;">Amigos</div>
                 </div>
@@ -2451,4 +2453,4 @@ function handleSwipeGesture() {
     });
 </script>
 </body>
-    </html>
+</html>
