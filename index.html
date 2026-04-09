@@ -18,21 +18,22 @@
     
     <style>
         /* --- ESTILOS GENERALES Y VARIABLES --- */
-        :root {
-            --primary: #58cc02; 
-            --primary-dark: #46a302;
-            --secondary: #1cb0f6;
-            --danger: #ff4b4b;
-            --energy: #2ecc71; 
-            --gold: #ffc800;
-            --elo: #9b59b6; 
-            --process: #e67e22; 
-            --dark: #2c3e50;
-            --light: #f7f7f7;
-            --claro: #da291c;
-            --tigo: #00377d;
-            --premove: #ff527b; 
-        }
+:root {
+    --primary: #58cc02; 
+    --primary-dark: #46a302;
+    --secondary: #1cb0f6;
+    --danger: #ff4b4b;
+    --energy: #2ecc71; 
+    --gold: #ffc800;
+    --elo: #9b59b6; 
+    --process: #e67e22; 
+    --dark: #2c3e50;
+    --light: #f7f7f7;
+    --claro: #da291c;
+    --tigo: #00377d;
+    --premove: #ff527b;
+    --pro: #9b59b6;
+}
 
         * {
             box-sizing: border-box;
@@ -1028,25 +1029,24 @@
             customAlert("Error de Conexión", "No se pudo conectar con el servidor.");
         });
 
-        auth.onAuthStateChanged((user) => { 
-            if (user) { 
-                userId = user.uid; 
-                // Creamos un ID corto para referidos (primeros 8 caracteres)
-                userShortId = userId.substring(0, 8).toUpperCase();
-                
-                // Actualizamos la interfaz con el ID
-                const idDisplay = document.getElementById('user-id-display');
-                const headerRef = document.getElementById('header-ref-id');
-                const myRef = document.getElementById('my-ref-id');
+auth.onAuthStateChanged((user) => { 
+    if (user) { 
+        userId = user.uid; 
+        userShortId = userId.substring(0, 8).toUpperCase();
 
-                if(idDisplay) idDisplay.innerText = userShortId; 
-                if(headerRef) headerRef.innerText = userShortId;
-                if(myRef) myRef.innerText = userShortId;
+        db.ref('refCodes/' + userShortId).set(userId);
 
-                // Iniciamos la escucha de datos
-                initFirebaseData(); 
-            } 
-        });
+        const idDisplay = document.getElementById('user-id-display');
+        const headerRef = document.getElementById('header-ref-id');
+        const myRef = document.getElementById('my-ref-id');
+
+        if(idDisplay) idDisplay.innerText = userShortId; 
+        if(headerRef) headerRef.innerText = userShortId;
+        if(myRef) myRef.innerText = userShortId;
+
+        initFirebaseData(); 
+    } 
+});
 
         /* --- 2. GESTIÓN DE ESTADO (OBJETO MAESTRO) --- */
         const GameConfig = {
@@ -1324,44 +1324,56 @@
                 document.getElementById('lives-count').innerText = UserState.lives;
             }
 
-            const cardEl = document.getElementById('premium-card');
-            cardEl.style.borderColor = subConfig.color;
-            cardEl.style.background = `linear-gradient(to right, ${subConfig.color}22, white)`;
             
-            let priceHtml = '';
-            if (subConfig.priceSub && subConfig.priceSub.trim() !== "") {
-                priceHtml = `
-                    <div style="line-height:1.2;">
-                        <span style="text-decoration: line-through; color: #999; font-size: 0.8rem;">${subConfig.price}</span>
-                        <br>
-                        <span style="color: #e74c3c; font-weight:800; font-size: 1.1rem; text-shadow: 0px 0px 1px rgba(0,0,0,0.1);">${subConfig.priceSub}</span>
-                    </div>
-                `;
-            } else {
-                priceHtml = `<small style="color: #777; display:block;">${subConfig.price}</small>`;
-            }
+const safeTitle = String(subConfig.title || 'Vidas Ilimitadas');
+const safePrice = String(subConfig.price || '$10/mes');
+const safePriceSub = String(subConfig.priceSub || '').trim();
+const safeBadge = String(subConfig.badge || '').trim();
+const safeColor = String(subConfig.color || '#9b59b6');
+const cardEl = document.getElementById('premium-card');
+cardEl.style.borderColor = safeColor;
+cardEl.style.background = `linear-gradient(to right, ${safeColor}22, white)`;
 
-            let htmlContent = `
-                <div style="text-align: left;">
-                    <strong style="color: ${subConfig.color}; font-size: 1rem;">${subConfig.title}</strong>
-                    ${priceHtml}
-                </div>
-                <i class="fas fa-crown" style="color: ${subConfig.color}; font-size: 1.5rem;"></i>
-            `;
-            if(subConfig.badge && subConfig.badge.trim() !== "") htmlContent += `<div class="offer-badge">${subConfig.badge}</div>`;
-            if(subConfig.showGift) htmlContent += `<div class="gift-icon" onclick="event.stopPropagation(); showGiftAlert()"><i class="fas fa-gift"></i></div>`;
+let priceHtml = '';
+if (safePriceSub !== "") {
+    priceHtml = `
+        <div style="line-height:1.2;">
+            <span style="text-decoration: line-through; color: #999; font-size: 0.8rem;">${safePrice}</span>
+            <br>
+            <span style="color: #e74c3c; font-weight:800; font-size: 1.1rem; text-shadow: 0px 0px 1px rgba(0,0,0,0.1);">${safePriceSub}</span>
+        </div>
+    `;
+} else {
+    priceHtml = `<small style="color: #777; display:block;">${safePrice}</small>`;
+}
+
+let htmlContent = `
+    <div style="text-align: left;">
+        <strong style="color: ${safeColor}; font-size: 1rem;">${safeTitle}</strong>
+        ${priceHtml}
+    </div>
+    <i class="fas fa-crown" style="color: ${safeColor}; font-size: 1.5rem;"></i>
+`;
+
+if (safeBadge !== "") {
+    htmlContent += `<div class="offer-badge">${safeBadge}</div>`;
+}
+
+if (subConfig.showGift) {
+    htmlContent += `<div class="gift-icon" onclick="event.stopPropagation(); showGiftAlert()"><i class="fas fa-gift"></i></div>`;
+}
             
             cardEl.innerHTML = htmlContent;
 
-            if (UserState.isPremium) {
-                lifeTimerEl.innerText = "";
-                if(UserState.energy < GameConfig.MAX_ENERGY) { } else { energyTimerEl.innerText = ""; }
-                
-                document.getElementById('modal-icon').className = "fas fa-crown"; 
-                document.getElementById('modal-icon').style.color = subConfig.color;
-                document.getElementById('normal-options').style.display = 'none'; 
-                document.getElementById('premium-manage').style.display = 'block'; 
-                
+if (UserState.isPremium) {
+    lifeTimerEl.innerText = "";
+    energyTimerEl.innerText = "";
+    
+    document.getElementById('modal-icon').className = "fas fa-crown"; 
+    document.getElementById('modal-icon').style.color = safeColor;
+    document.getElementById('normal-options').style.display = 'none'; 
+    document.getElementById('premium-manage').style.display = 'block';
+    
                 const dateObj = new Date(UserState.premiumExpiry);
                 document.getElementById('expiry-date-display').innerText = dateObj.toLocaleDateString();
                 const statusTxt = document.getElementById('sub-status-display');
@@ -1719,7 +1731,7 @@
                 let mult = (setup.time === 1) ? 2.0 : ((setup.time === 5) ? 1.5 : (setup.time === 30 ? 0.5 : 1.0));
                 coinDiff = Math.floor(base * mult);
                 energyDiff = GameConfig.WIN_ENERGY_REWARD;
-                UserState.energy += energyDiff;
+UserState.energy = Math.min(GameConfig.MAX_ENERGY, UserState.energy + energyDiff);
                 title = "¡VICTORIA!"; msg = "Has ganado la partida."; iconClass = "fas fa-trophy"; color = "var(--primary)";
                 UserState.coins += coinDiff;
             } else if (result === 'lose_mate') {
@@ -1755,7 +1767,7 @@
                     if(UserState.lives < 0) UserState.lives = 0; 
                 }
                 if (UserState.energy === GameConfig.MAX_ENERGY) UserState.lastEnergyRefillTime = Date.now();
-                UserState.energy += energyDiff; if(UserState.energy < 0) UserState.energy = 0;
+UserState.energy = Math.max(0, UserState.energy + energyDiff);
             } else if (result === 'draw') {
                 SoundEngine.draw(); 
                 title = "TABLAS"; msg = "Empate técnico."; iconClass = "fas fa-handshake"; color = "var(--secondary)";
@@ -2220,62 +2232,99 @@ function handleSwipeGesture() {
             }
         }
 
-        function submitReferralCode() {
-            if (UserState.hasBeenReferred) {
+function submitReferralCode() {
+    if (UserState.hasBeenReferred) {
+        customAlert("Ya usado", "Solo puedes canjear un código de amigo una vez.", "error");
+        return;
+    }
+
+    const inputCode = document.getElementById('friend-id-input').value.trim().toUpperCase();
+
+    if (!inputCode) {
+        customAlert("Error", "Escribe el ID de tu amigo.", "error");
+        return;
+    }
+
+    if (inputCode === userShortId) {
+        customAlert("Error", "No puedes usar tu propio código.", "error");
+        return;
+    }
+
+    if (inputCode.length !== 8) {
+        customAlert("Error", "El ID debe tener 8 caracteres.", "error");
+        return;
+    }
+
+    customAlert("Verificando...", "Buscando amigo...", "info");
+
+    db.ref('refCodes/' + inputCode).once('value').then(codeSnap => {
+        if (!codeSnap.exists()) {
+            closeCustomAlert();
+            customAlert("Error", "Código de amigo no encontrado.", "error");
+            return;
+        }
+
+        const friendUid = codeSnap.val();
+
+        if (!friendUid || friendUid === userId) {
+            closeCustomAlert();
+            customAlert("Error", "Código inválido.", "error");
+            return;
+        }
+
+        db.ref('users/' + userId).transaction(userData => {
+            if (userData === null) return userData;
+
+            if (userData.referredBy) {
+                return;
+            }
+
+            userData.coins = (userData.coins || 0) + 100;
+            userData.referredBy = friendUid;
+
+            return userData;
+        }, (error, committed, snapshot) => {
+            if (error) {
+                closeCustomAlert();
+                customAlert("Error", "No se pudo aplicar el referido.", "error");
+                return;
+            }
+
+            if (!committed) {
+                closeCustomAlert();
                 customAlert("Ya usado", "Solo puedes canjear un código de amigo una vez.", "error");
                 return;
             }
 
-            const inputCode = document.getElementById('friend-id-input').value.trim().toUpperCase();
-            
-            if (!inputCode) { customAlert("Error", "Escribe el ID de tu amigo.", "error"); return; }
-            if (inputCode === userShortId) { customAlert("Error", "No puedes usar tu propio código.", "error"); return; }
-            if (inputCode.length !== 8) { customAlert("Error", "El ID debe tener 8 caracteres.", "error"); return; }
+            const claimData = {
+                referrerUid: friendUid,
+                referredUid: userId,
+                code: inputCode,
+                rewardReferrer: 200,
+                status: 'pending',
+                createdAt: Date.now()
+            };
 
-            customAlert("Verificando...", "Buscando amigo...", "info");
-
-            db.ref('users').once('value').then(snapshot => {
-                let friendUid = null;
-                let friendData = null;
-
-                if (snapshot.exists()) {
-                    snapshot.forEach(child => {
-                        const uid = child.key;
-                        const shortId = uid.substring(0, 8).toUpperCase();
-                        if (shortId === inputCode) {
-                            friendUid = uid;
-                            friendData = child.val();
-                        }
-                    });
-                }
-
-                closeCustomAlert(); 
-
-                if (friendUid && friendData) {
-                    db.ref('users/' + friendUid).transaction(userData => {
-                        if (userData) {
-                            userData.coins = (userData.coins || 0) + 200;
-                            userData.pendingReferralReward = true; 
-                        }
-                        return userData;
-                    });
-
-                    UserState.coins += 100;
+            db.ref('referralClaims').push(claimData)
+                .then(() => {
+                    const updatedUser = snapshot.val() || {};
+                    UserState.coins = updatedUser.coins || UserState.coins;
                     UserState.hasBeenReferred = true;
-                    
-                    db.ref('users/' + userId).update({ 
-                        coins: UserState.coins, 
-                        referredBy: friendUid 
-                    });
 
-                    customAlert("¡Éxito!", "Has ganado 100 monedas y tu amigo 200.", "success");
+                    closeCustomAlert();
+                    customAlert("¡Éxito!", "Has ganado 100 monedas. El referido será acreditado automáticamente.", "success");
                     closeReferralModal();
-                    renderUI(); 
-                } else {
-                    customAlert("Error", "Código de amigo no encontrado.", "error");
-                }
-            });
-        }
+                    renderUI();
+                })
+                .catch(() => {
+                    closeCustomAlert();
+                    customAlert("Parcial", "Ganaste tus 100 monedas, pero el premio del referido quedó pendiente de registrar.", "info");
+                    closeReferralModal();
+                    renderUI();
+                });
+        });
+    });
+}
 
         function showGiftAlert() { customAlert(subConfig.giftTitle, subConfig.giftMsg, "success"); }
         function updateLifeShopButtons() { if(UserState.isPremium) return; const isFull = UserState.lives >= GameConfig.MAX_LIVES; document.getElementById('ad-option').classList.toggle('disabled', isFull); document.getElementById('buy-option').classList.toggle('disabled', isFull); }
@@ -2340,7 +2389,61 @@ function handleSwipeGesture() {
         
         function contactSupport() { const myID = userId ? userId.substring(0, 8).toUpperCase() : "INVITADO"; const phoneNumber = "50247625057"; const message = `Hola Soporte. Me interesa la oferta: ${subConfig.title}. Mi ID es: ${myID}`; window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank'); }
         
-        function redeemCode() { const input = document.getElementById('activation-code').value.trim().toUpperCase(); if(!input) { customAlert("Error", "Ingresa un código.", "error"); return; } db.ref('coupons/' + input).once('value').then((snapshot) => { if (snapshot.exists()) { const couponData = snapshot.val(); if (couponData.used) { customAlert("Código Usado", "Ya fue utilizado.", "error"); } else { const now = Date.now(); UserState.premiumExpiry = now + (30 * 24 * 60 * 60 * 1000); UserState.isPremium = true; UserState.autoRenew = true; db.ref('coupons/' + input).update({ used: true, usedBy: userId, usedDate: now }); saveToFirebase(); renderUI(); customAlert("¡Suscripción Activada!", "Disfruta de tus beneficios.", "success"); closeLifeModal(); } } else { customAlert("Inválido", "Verifica el código.", "error"); } }); }
+function redeemCode() {
+    const input = document.getElementById('activation-code').value.trim().toUpperCase();
+
+    if (!input) {
+        customAlert("Error", "Ingresa un código.", "error");
+        return;
+    }
+
+    const couponRef = db.ref('coupons/' + input);
+    const now = Date.now();
+
+    couponRef.transaction((couponData) => {
+        if (couponData === null) {
+            return; // cupón no existe
+        }
+
+        if (couponData.used === true) {
+            return; // ya usado
+        }
+
+        couponData.used = true;
+        couponData.usedBy = userId;
+        couponData.usedDate = now;
+
+        return couponData;
+    }, (error, committed, snapshot) => {
+        if (error) {
+            customAlert("Error", "No se pudo validar el código.", "error");
+            return;
+        }
+
+        if (!committed) {
+            if (!snapshot.exists()) {
+                customAlert("Inválido", "Verifica el código.", "error");
+            } else {
+                const data = snapshot.val();
+                if (data && data.used) {
+                    customAlert("Código Usado", "Ya fue utilizado.", "error");
+                } else {
+                    customAlert("Error", "No se pudo activar el código.", "error");
+                }
+            }
+            return;
+        }
+
+        UserState.premiumExpiry = now + (30 * 24 * 60 * 60 * 1000);
+        UserState.isPremium = true;
+        UserState.autoRenew = true;
+
+        saveToFirebase();
+        renderUI();
+        customAlert("¡Suscripción Activada!", "Disfruta de tus beneficios.", "success");
+        closeLifeModal();
+    });
+}
         
         function cancelSubscription() { showConfirm("Cancelar", "¿Cancelar renovación automática?", function() { UserState.autoRenew = false; saveToFirebase(); renderUI(); customAlert("Cancelado", "Ya no renovará automáticamente.", "info"); }); }
     </script>
